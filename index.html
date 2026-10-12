@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>选股意图解释器 · NL Stock Screener</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">选股意图解释器</span>
+    <span class="sub">Natural Language Stock Screener · AI×确定性引擎×数据层 职责分离</span>
+  </div>
+  <div class="top-actions">
+    <span id="dataModeBadge" class="badge badge-amber">演示数据</span>
+    <span id="llmBadge" class="badge badge-gray">规则解析</span>
+    <button id="btnRefreshQuotes" class="btn btn-ghost" title="用腾讯公开行情覆盖 PE/PB/市值/换手率（财务指标仍为演示口径）">刷新实时行情</button>
+  </div>
+</header>
+
+<div id="dataBanner" class="banner banner-amber">
+  <strong>演示数据模式：</strong>当前财务指标为<b>构造的演示数据</b>（非实时、非真实财务数据），仅用于功能演示；行情字段可点击右上角「刷新实时行情」覆盖为实时来源。接入扶摇 API 后自动切换真实数据。
+</div>
+
+<main class="layout">
+  <!-- 输入区 -->
+  <section class="card" id="inputCard">
+    <h2>1 · 用一句话描述选股意图</h2>
+    <textarea id="intentInput" rows="3" placeholder="例如：经营改善、估值合理、走势相对稳定"></textarea>
+    <div class="chips" id="exampleChips"></div>
+    <div class="row">
+      <button id="btnParse" class="btn btn-primary">解析意图 → 结构化条件</button>
+      <span id="parseStatus" class="muted"></span>
+    </div>
+  </section>
+
+  <!-- 解析结果区 -->
+  <section class="card" id="parsedCard" style="display:none">
+    <h2>2 · 结构化条件（可检查、可修改）</h2>
+    <div id="summaryLine" class="summary"></div>
+
+    <div id="conflictBox"></div>
+    <div id="clarifyBox"></div>
+    <div id="missingBox"></div>
+
+    <div id="conditionsEditor"></div>
+    <div class="row">
+      <button id="btnAddCondition" class="btn btn-ghost">+ 添加指标条件</button>
+      <button id="btnAddExcludeST" class="btn btn-ghost">+ 剔除ST</button>
+      <select id="industryExcludeSelect" class="select-inline"></select>
+      <button id="btnAddIndustryExclude" class="btn btn-ghost">+ 排除行业</button>
+    </div>
+
+    <div class="row">
+      <button id="btnScreen" class="btn btn-primary btn-lg">执行确定性筛选</button>
+      <span id="screenStatus" class="muted"></span>
+    </div>
+  </section>
+
+  <!-- 结果区 -->
+  <section class="card" id="resultCard" style="display:none">
+    <h2>3 · 筛选结果与解释</h2>
+    <div id="resultSummary" class="summary"></div>
+    <div class="row toolbar">
+      <label class="checkbox-inline"><input type="checkbox" id="chkShowExcluded" checked> 展示"接近入选"</label>
+      <button id="btnCompare" class="btn btn-ghost" disabled>比较所选（0）</button>
+      <button id="btnBacktest" class="btn btn-ghost">对当前入选做回测</button>
+      <div class="save-group">
+        <input id="saveName" type="text" placeholder="策略名称（可选）" maxlength="50">
+        <button id="btnSave" class="btn btn-ghost">保存策略</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="resultTable">
+        <thead>
+          <tr>
+            <th></th><th>代码</th><th>名称</th><th>板块/行业</th><th>结果</th><th>满足度</th>
+            <th>PE</th><th>PB</th><th>ROE</th><th>净利同比</th><th>市值(亿)</th><th>波动率</th><th>股息率</th><th>60日涨幅</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="nearMissBlock"></div>
+  </section>
+
+  <!-- 敏感性区 -->
+  <section class="card" id="whatifCard" style="display:none">
+    <h2>4 · 条件敏感性（What-if）：改一个条件，看谁进谁出</h2>
+    <div class="row">
+      <label>修改条件：</label>
+      <select id="whatifSelect" class="select-inline"></select>
+      <label>新阈值：</label>
+      <input id="whatifValue" type="text" class="input-inline" placeholder="单值或 lo,hi">
+      <button id="btnWhatif" class="btn btn-primary">计算影响</button>
+    </div>
+    <div id="whatifResult"></div>
+  </section>
+
+  <!-- 回测区 -->
+  <section class="card" id="backtestCard" style="display:none">
+    <h2>5 · 回测（演示）</h2>
+    <div id="backtestMeta" class="summary"></div>
+    <canvas id="btChart" width="900" height="300"></canvas>
+    <div id="backtestTableWrap"></div>
+    <p class="muted small">* 演示回测使用模拟价格序列，仅演示流程，不构成任何投资建议。</p>
+  </section>
+
+  <!-- 保存区 -->
+  <section class="card" id="savedCard">
+    <h2>6 · 已保存策略</h2>
+    <div id="savedList"><p class="muted">暂无保存的策略。</p></div>
+  </section>
+</main>
+
+<footer class="footer">
+  <p>合规声明：本产品不输出确定性涨跌预测、收益承诺或直接买卖建议；所有事实与推断均区分展示，数据来源、时点与口径逐字段标注。演示数据仅用于功能演示。</p>
+  <p class="muted small">数据层：扶摇金融数据 API（待接入）· 腾讯公开行情（实时增强）· 演示数据集（默认）｜AI 层：LLM（可选）＋ 规则解析（默认）｜引擎层：确定性筛选引擎</p>
+</footer>
+
+<div id="modalMask" style="display:none" onclick="closeModal()"></div>
+<div id="modal" style="display:none"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
