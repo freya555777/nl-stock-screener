@@ -1,0 +1,20 @@
+# Render 一键部署配置（免费 Web Service）
+# 用法：把本仓库推送到 GitHub → Render 控制台 New Web Service → Connect → 自动读取本文件
+services:
+  - type: web
+    name: nl-stock-screener
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      # 可选：部署后到 Dashboard 补充以下变量
+      # - key: LLM_API_KEY
+      #   sync: false
+      # - key: LLM_MODEL
+      #   sync: false
+      # - key: FUYAO_API_KEY
+      #   sync: false
